@@ -4,18 +4,30 @@
 Vagrant.configure("2") do |config|
   config.vm.box = "debian/bullseye64"
 
-  config.vm.define "slave", autostart: true do |slave|
-    slave.vm.hostname = "boltslave"
-    slave.vm.box = "bolt/slave"
-    slave.vm.network "private_network", ip: "192.168.152.11", virtualbox__intnet: true
+  config.vm.define "winslave", autostart: true do |winslave|
+    winslave.vm.hostname = "winslave"
+    winslave.vm.box = "gusztavvargadr/windows-10"
+    winslave.vm.network "private_network", ip: "192.168.152.12", virtualbox__intnet: true
+    winslave.vm.boot_timeout = 900
+    winslave.vm.provider "virtualbox" do |vb|
+      vb.memory = "8192"
+    end
   end
 
-  config.vm.define "master", autostart: true do |master|
-    master.vm.hostname = "boltmaster"
-    master.vm.box = "bolt/master"
-    master.vm.network "private_network", ip: "192.168.152.10", virtualbox__intnet: true
-    master.vm.provision "shell", inline: <<-SHELL
-      bolt command run whoami --targets 192.168.152.11:22 --user root --no-host-key-check
+  config.vm.define "linslave", autostart: true do |linslave|
+    linslave.vm.hostname = "linslave"
+    linslave.vm.box = "bolt/slave"
+    linslave.vm.network "private_network", ip: "192.168.152.11", virtualbox__intnet: true
+  end
+
+  config.vm.define "bolt", autostart: true do |bolt|
+    bolt.vm.hostname = "bolt"
+    bolt.vm.box = "bolt/master"
+    bolt.vm.network "private_network", ip: "192.168.152.10", virtualbox__intnet: true
+    bolt.vm.provision "shell", inline: <<-SHELL
+      sudo su 
+      bolt command run whoami --targets 192.168.152.11 --user root --no-host-key-check --transport ssh
+      bolt command run 'Get-Location' --targets 192.168.152.12 --user vagrant --password vagrant --no-ssl --transport winrm
     SHELL
   end
 
