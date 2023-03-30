@@ -1,0 +1,36 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+Vagrant.configure("2") do |config|
+  config.vm.box = "debian/bullseye64"
+
+  config.vm.define "common", autostart: true do |common|
+    common.vm.provision "shell", inline: <<-SHELL
+      rm --force /vagrant/corsair_rsa
+      rm --force /vagrant/corsair_rsa.pub
+      ssh-keygen -t rsa -q -f /vagrant/corsair_rsa -N "" -C ""
+    SHELL
+  end
+
+  config.vm.define "slave", autostart: true do |slave|
+    slave.vm.provision "shell", inline: <<-SHELL
+      sudo mkdir --mode=0700 /root/.ssh
+      sudo cp /vagrant/corsair_rsa.pub /root/.ssh/authorized_keys
+    SHELL
+  end
+
+  config.vm.define "master", autostart: true do |master|
+    master.vm.provision "shell", inline: <<-SHELL
+      wget https://apt.puppet.com/puppet-tools-release-bullseye.deb
+      sudo dpkg -i puppet-tools-release-bullseye.deb
+      sudo apt-get update
+      sudo apt-get install puppet-bolt
+      
+      sudo mkdir --mode=0700 /root/.ssh
+      sudo cp /vagrant/corsair_rsa.pub /root/.ssh/id_rsa.pub
+      sudo cp /vagrant/corsair_rsa /root/.ssh/id_rsa
+      sudo chmod 600 /root/.ssh/id_rsa
+    SHELL
+  end
+
+end
